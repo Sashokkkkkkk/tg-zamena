@@ -1,0 +1,283 @@
+global_settings {
+    assumed_gamma 1.0
+    ambient_light rgb <0.4, 0.45, 0.5>
+    max_trace_level 5
+}
+
+// ==================== НАСТРОЙКИ КАЧЕСТВА ====================
+#declare Quality = 3;  // 1=черновик, 2=среднее, 3=высокое
+
+// ==================== КАМЕРА ================================
+camera {
+    perspective
+    location  <1.8, 1.3, -2.2>    // позиция камеры
+    look_at   <0.5, 0.55, 0.0>     // точка фокуса
+    right     x * image_width / image_height
+    angle     48                    // угол обзора
+    focal_point <0.5, 0.55, 0.0>   // для глубины резкости
+    aperture 0.012 if(Quality=3)   // размытие фона (только высокое качество)
+    blur_samples 15 if(Quality=3)
+}
+
+// ==================== ОСВЕЩЕНИЕ ==============================
+// Основной свет (окно класса)
+light_source {
+    <3, 4, -2>
+    color rgb <1, 0.98, 0.92>
+    shadowless
+}
+
+// Заполняющий свет (потолок)
+light_source {
+    <0, 3.5, 0>
+    color rgb 0.45
+    area_light <1.5, 0, 0>, <0, 0, 1.5>, 4, 4
+    adaptive 1
+    jitter
+    circular
+    orient
+}
+
+// Контровой свет (справа)
+light_source {
+    <1.5, 2, -1.8>
+    color rgb <0.6, 0.65, 0.7>
+}
+
+// Акцент на спинку (сзади)
+light_source {
+    <0.5, 1.2, 1.5>
+    color rgb <0.8, 0.75, 0.7>
+    fade_distance 1.5
+    fade_power 1
+}
+
+// ==================== ПОЛ С ТЕКСТУРОЙ =======================
+#macro FloorTexture()
+    texture {
+        pigment {
+            wood_map
+            color_map {
+                [0.0 rgb <0.65, 0.55, 0.45>]
+                [0.3 rgb <0.68, 0.58, 0.48>]
+                [0.6 rgb <0.62, 0.52, 0.42>]
+                [1.0 rgb <0.66, 0.56, 0.46>]
+            }
+            scale <0.15, 0.1, 0.15>
+            warp { turbulence 0.3 }
+        }
+        finish {
+            ambient 0.15
+            diffuse 0.65
+            specular 0.15
+            roughness 0.25
+        }
+        normal {
+            wood 0.5
+            scale 0.08
+        }
+    }
+#end
+
+plane {
+    y, 0
+    texture { FloorTexture() }
+}
+
+// ==================== ВСПОМОГАТЕЛЬНЫЕ МАКРОСЫ ================
+
+// Макрос для металлической трубы с эффектом хрома
+#macro MetalPipe(Start, End, Radius)
+    cylinder {
+        Start, End, Radius
+        texture {
+            pigment { color rgb <0.75, 0.78, 0.82> }
+            finish {
+                ambient 0.1
+                diffuse 0.4
+                specular 0.9
+                roughness 0.02
+                reflection { 0.35, 0.65 }
+                metallic
+            }
+        }
+    }
+#end
+
+// Макрос для пластикового наконечника ножки
+#macro RubberFoot(Pos, Radius)
+    sphere {
+        Pos, Radius
+        texture {
+            pigment { color rgb <0.12, 0.12, 0.13> }
+            finish {
+                ambient 0.05
+                diffuse 0.7
+                specular 0.35
+                roughness 0.1
+            }
+        }
+    }
+#end
+
+// Макрос для деревянного сиденья
+#macro WoodenSeat(Left, Top, Right, Bottom, Front, Back)
+    difference {
+        box { <Left, Top, Front>, <Right, Bottom, Back> }
+        
+        // Скругление всех рёбер
+        #local R = 0.035;
+        cylinder { <Left+R, Top+R, Front+R>, <Left+R, Bottom-R, Front+R>, R }
+        cylinder { <Right-R, Top+R, Front+R>, <Right-R, Bottom-R, Front+R>, R }
+        cylinder { <Left+R, Top+R, Back-R>, <Left+R, Bottom-R, Back-R>, R }
+        cylinder { <Right-R, Top+R, Back-R>, <Right-R, Bottom-R, Back-R>, R }
+        
+        texture {
+            pigment {
+                wood_map
+                color_map {
+                    [0.0 rgb <0.82, 0.65, 0.42>]
+                    [0.5 rgb <0.78, 0.6, 0.38>]
+                    [1.0 rgb <0.85, 0.68, 0.45>]
+                }
+                scale <0.08, 0.04, 0.12>
+                warp { turbulence 0.4 }
+            }
+            finish {
+                ambient 0.1
+                diffuse 0.65
+                specular 0.35
+                roughness 0.08
+                reflection 0.05
+            }
+            normal {
+                wood 0.6
+                scale 0.06
+            }
+        }
+    }
+#end
+
+// ==================== НОЖКИ СТУЛА ============================
+#macro ChairLeg(X, Z, Height)
+    union {
+        // Основная труба
+        MetalPipe(<X, 0.015, Z>, <X, Height, Z>, 0.027)
+        
+        // Резиновый наконечник
+        RubberFoot(<X, 0.01, Z>, 0.035)
+        
+        // Декоративное кольцо вверху
+        cylinder {
+            <X, Height-0.02, Z>, <X, Height-0.008, Z>, 0.032
+            texture { pigment { color rgb <0.7, 0.72, 0.75> } }
+        }
+    }
+#end
+
+// ==================== КРЕПЛЕНИЕ СПИНКИ =======================
+#macro BackSupport(X, Z, YStart, YEnd)
+    MetalPipe(<X, YStart, Z>, <X, YEnd, Z>, 0.024)
+#end
+
+// ==================== ОСНОВНОЙ СБОРНЫЙ СТУЛ ==================
+union {
+    // ---- 4 основные ножки (расставлены для устойчивости) ----
+    ChairLeg(0.12, 0.12, 0.44)
+    ChairLeg(0.12, 0.49, 0.44)
+    ChairLeg(0.49, 0.12, 0.44)
+    ChairLeg(0.49, 0.49, 0.44)
+    
+    // ---- Перекладины (укрепление) ----
+    #local BraceH = 0.22;
+    MetalPipe(<0.12, BraceH, 0.12>, <0.49, BraceH, 0.12>, 0.018)  // передняя
+    MetalPipe(<0.12, BraceH, 0.49>, <0.49, BraceH, 0.49>, 0.018)  // задняя
+    MetalPipe(<0.12, BraceH, 0.12>, <0.12, BraceH, 0.49>, 0.018)  // левая
+    MetalPipe(<0.12, BraceH, 0.49>, <0.49, BraceH, 0.49>, 0.018)  // правая
+    
+    // Диагональные усилители (Х-образные)
+    #if(Quality >= 2)
+        MetalPipe(<0.12, 0.15, 0.12>, <0.49, 0.30, 0.49>, 0.014)
+        MetalPipe(<0.49, 0.15, 0.12>, <0.12, 0.30, 0.49>, 0.014)
+    #end
+    
+    // ---- СИДЕНЬЕ (эргономичное) ----
+    WoodenSeat(0.08, 0.45, 0.53, 0.50, 0.08, 0.53)
+    
+    // ---- СПИНКА (с поддержкой поясницы) ----
+    union {
+        // Вертикальные стойки
+        BackSupport(0.14, 0.535, 0.50, 0.82)
+        BackSupport(0.47, 0.535, 0.50, 0.82)
+        
+        // Верхняя перекладина
+        MetalPipe(<0.14, 0.82, 0.535>, <0.47, 0.82, 0.535>, 0.024)
+        
+        // Средняя перекладина (для спины)
+        MetalPipe(<0.14, 0.70, 0.538>, <0.47, 0.70, 0.538>, 0.022)
+        
+        // Поясничная поддержка (изогнутая)
+        #if(Quality >= 2)
+            sphere_sweep {
+                b_spline
+                5
+                <0.14, 0.62, 0.545>, 0.016
+                <0.22, 0.60, 0.548>, 0.018
+                <0.305, 0.59, 0.550>, 0.019
+                <0.39, 0.60, 0.548>, 0.018
+                <0.47, 0.62, 0.545>, 0.016
+                texture { MetalPipe(<0,0,0>, <0,0,0>, 0).texture }
+            }
+        #end
+        
+        // Пластиковые заглушки сверху
+        sphere { <0.14, 0.835, 0.535>, 0.022 texture { pigment { color rgb 0.15 } } }
+        sphere { <0.47, 0.835, 0.535>, 0.022 texture { pigment { color rgb 0.15 } } }
+        
+        // Металлические уголки крепления спинки к сиденью
+        #if(Quality >= 2)
+            union {
+                box { <0.12, 0.47, 0.52>, <0.16, 0.51, 0.56> }
+                box { <0.45, 0.47, 0.52>, <0.49, 0.51, 0.56> }
+                texture {
+                    pigment { color rgb <0.68, 0.7, 0.73> }
+                    finish { metallic specular 0.8 roughness 0.03 }
+                }
+            }
+        #end
+    }
+    
+    // ---- ТЕНЬ ПОД СТУЛОМ (реалистичная) ----
+    #if(Quality >= 2)
+        plane {
+            y, 0.001
+            texture {
+                pigment { color rgbt <0,0,0,0.7> }
+                finish { ambient 0 diffuse 0 }
+            }
+            scale <0.9, 1, 0.9>
+            translate <-0.2, 0, -0.2>
+        }
+    #end
+    
+    // Общее смещение стула (центрирование)
+    translate <-0.305, 0, -0.305>
+}
+
+// ==================== ОКРУЖЕНИЕ КЛАССА =======================
+#declare WallColor = rgb <0.88, 0.85, 0.82>;
+
+// Стена сзади (для атмосферы)
+box {
+    <-2, -0.5, 2.5>, <2.5, 2, 2.52>
+    texture {
+        pigment { WallColor }
+        finish { ambient 0.3 diffuse 0.6 }
+    }
+}
+
+// Плинтус
+box {
+    <-2, 0, 2.5>, <2.5, 0.08, 2.52>
+    texture { pigment { color rgb <0.95, 0.92, 0.88> } }
+}
