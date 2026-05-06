@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>АвтоМойка PRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1f2b;
+    --accent: #00d4ff;
+    --accent2: #ff6b1a;
+    --green: #00e676;
+    --yellow: #ffd600;
+    --red: #ff3d3d;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --border: rgba(0,212,255,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,212,255,0.07) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky; top:0; z-index:100;
+    background: rgba(10,12,16,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,212,255,0.4);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo span { color: var(--accent2); }
+  .logo-icon { font-size: 24px; }
+  nav { display: flex; gap: 4px; }
+  nav button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-weight: 600; letter-spacing: 1px;
+    padding: 8px 18px; border-radius: 8px;
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  nav button:hover { color: var(--text); background: var(--surface); }
+  nav button.active { color: var(--accent); background: rgba(0,212,255,0.08); }
+  .header-stats {
+    display: flex; gap: 20px; align-items: center;
+  }
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stat-chip .dot { width:7px; height:7px; border-radius:50%; }
+
+  /* MAIN */
+  main { position: relative; z-index:1; padding: 32px; max-width: 1400px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeUp 0.35s ease; }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px; letter-spacing: 2px;
+    color: var(--text);
+  }
+  .page-title span { color: var(--accent); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 10px;
+    border: none; cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    transition: all 0.2s; text-transform: uppercase;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0099bb);
+    color: #000;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.25);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,212,255,0.4); }
+  .btn-accent2 {
+    background: linear-gradient(135deg, var(--accent2), #cc4400);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(255,107,26,0.25);
+  }
+  .btn-accent2:hover { transform: translateY(-2px); }
+  .btn-ghost {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(255,61,61,0.15); color: var(--red); border: 1px solid rgba(255,61,61,0.3); }
+  .btn-danger:hover { background: rgba(255,61,61,0.25); }
+  .btn-sm { padding: 6px 14px; font-size: 11px; border-radius: 7px; }
+  .btn-success { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .btn-success:hover { background: rgba(0,230,118,0.22); }
+
+  /* CARDS GRID */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+  /* CAR CARD */
+  .car-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    transition: all 0.3s; cursor: pointer;
+    position: relative;
+  }
+  .car-card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 12px 40px rgba(0,212,255,0.15); }
+  .car-card-img {
+    width: 100%; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .car-svg { width: 220px; height: 130px; transition: transform 0.3s; }
+  .car-card:hover .car-svg { transform: scale(1.05); }
+  .car-card-body { padding: 16px 18px; }
+  .car-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 1.5px;
+    color: var(--accent);
+  }
+  .car-model { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .car-plate {
+    display: inline-block;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 10px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    margin-top: 8px; color: var(--text);
+  }
+  .car-owner { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .car-color-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block; margin-right: 5px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .car-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  thead th {
+    padding: 14px 16px; text-align: left;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,212,255,0.04); }
+  tbody td { padding: 13px 16px; font-size: 13px; }
+
+  /* STATUS BADGE */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge-new { background: rgba(0,212,255,0.12); color: var(--accent); border: 1px solid rgba(0,212,255,0.25); }
+  .badge-work { background: rgba(255,214,0,0.12); color: var(--yellow); border: 1px solid rgba(255,214,0,0.25); }
+  .badge-ready { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+  .badge-plan { background: rgba(255,107,26,0.12); color: var(--accent2); border: 1px solid rgba(255,107,26,0.25); }
+  .badge-done { background: rgba(107,114,128,0.12); color: var(--muted); border: 1px solid rgba(107,114,128,0.25); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px;
+    width: 100%; max-width: 580px; max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity:0; }
+    to { transform: translateY(0); opacity:1; }
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px; letter-spacing: 2px;
+    color: var(--text); margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 18px; transition: all 0.2s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--accent); }
+
+  /* FORM */
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  input, select, textarea {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Montserrat', sans-serif;
+    font-size: 13px; padding: 11px 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* SERVICE CARDS */
+  .service-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px;
+    display: flex; align-items: center; gap: 16px;
+    transition: all 0.2s;
+  }
+  .service-card:hover { border-color: rgba(0,212,255,0.3); }
+  .service-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .service-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .service-price { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+  .service-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .service-cat {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 20px; text-transform: uppercase;
+  }
+
+  /* DASHBOARD */
+  .dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .dash-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px 22px;
+    position: relative; overflow: hidden;
+  }
+  .dash-card::after {
+    content: ''; position: absolute; right: -20px; top: -20px;
+    width: 80px; height: 80px; border-radius: 50%;
+    opacity: 0.06;
+  }
+  .dash-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .dash-value { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1px; }
+  .dash-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* SEARCH BAR */
+  .search-bar {
+    display: flex; gap: 12px; margin-bottom: 20px; align-items: center;
+  }
+  .search-input-wrap { position: relative; flex: 1; }
+  .search-input-wrap input { padding-left: 38px; }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none; font-size: 15px;
+  }
+
+  /* BOOKING PANEL */
+  .book-services {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+  }
+  .book-service-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .book-service-item:hover { border-color: var(--accent); }
+  .book-service-item.selected { border-color: var(--accent); background: rgba(0,212,255,0.08); }
+  .book-service-item input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
+  .book-svc-name { font-size: 12px; font-weight: 600; }
+  .book-svc-price { font-size: 11px; color: var(--accent); font-weight: 700; }
+
+  /* COLOR MAP */
+  .color-map { 'чёрный':'#222','белый':'#eee','серый':'#888','синий':'#2255aa' }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 28px; right: 28px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 20px;
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    animation: toastIn 0.3s ease;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    min-width: 260px;
+  }
+  @keyframes toastIn { from { transform: translateX(80px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+  .toast.success { border-color: rgba(0,230,118,0.3); }
+  .toast.error { border-color: rgba(255,61,61,0.3); }
+
+  .empty-state {
+    text-align: center; padding: 60px; color: var(--muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; font-weight: 600; }
+
+  .filter-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .filter-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; color: var(--muted);
+  }
+  .filter-chip:hover { color: var(--text); border-color: var(--accent); }
+  .filter-chip.active { background: rgba(0,212,255,0.1); color: var(--accent); border-color: var(--accent); }
+
+  @media(max-width:900px) {
+    .dash-grid { grid-template-columns: repeat(2,1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    .book-services { grid-template-columns: 1fr; }
+  }
+  @media(max-width:600px) {
+    main { padding: 16px; }
+    header { padding: 0 16px; }
+    nav button { padding: 6px 10px; font-size: 11px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🚗</span>
+    АВТО<span>МОЙКА</span>&nbsp;PRO
+  </div>
+  <nav>
+    <button class="active" onclick="showPage('dashboard',this)">📊 Главная</button>
+    <button onclick="showPage('orders',this)">📋 Заказы</button>
+    <button onclick="showPage('cars',this)">🚘 Автомобили</button>
+    <button onclick="showPage('clients',this)">👤 Клиенты</button>
+    <button onclick="showPage('services',this)">✨ Услуги</button>
+  </nav>
+  <div class="header-stats" id="headerStats"></div>
+</header>
+
+<main>
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">ПАНЕЛЬ <span>УПРАВЛЕНИЯ</span></div>
+      <button class="btn btn-primary" onclick="openBookingModal()">+ Новый заказ</button>
+    </div>
+    <div class="dash-grid" id="dashCards"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:14px;color:var(--muted)">ПОСЛЕДНИЕ ЗАКАЗЫ</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>№</th><th>Клиент</th><th>Авто</th><th>Статус</th><th>Сумма</th></tr></thead>
+          <tbody id="dashOrders"></tbody>
+        </table></div>
+      </div>
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:14px;color:var(--muted)">ПОПУЛЯРНЫЕ УСЛУГИ</div>
+        <div id="topServices" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="page" id="page-orders">
+    <div class="page-header">
+      <div class="page-title">ЗАКАЗЫ</div>
+      <button class="btn btn-primary" onclick="openBookingModal()">+ Новый заказ</button>
+    </div>
+    <div class="filter-row" id="orderFilters"></div>
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Поиск по клиенту, авто, номеру..." id="orderSearch" oninput="renderOrders()">
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>№</th><th>Дата</th><th>Клиент</th><th>Автомобиль</th><th>Услуги</th><th>Сумма</th><th>Статус</th><th>Оплата</th><th>Действия</th></tr></thead>
+      <tbody id="ordersTable"></tbody>
+    </table></div>
+  </div>
+
+  <!-- CARS -->
+  <div class="page" id="page-cars">
+    <div class="page-header">
+      <div class="page-title">АВТОМОБИЛИ</div>
+      <button class="btn btn-primary" onclick="openCarModal()">+ Добавить авто</button>
+    </div>
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Марка, модель, номер..." id="carSearch" oninput="renderCars()">
+      </div>
+    </div>
+    <div class="cards-grid" id="carsGrid"></div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="page" id="page-clients">
+    <div class="page-header">
+      <div class="page-title">КЛИЕНТЫ</div>
+      <button class="btn btn-primary" onclick="openClientModal()">+ Добавить клиента</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ФИО</th><th>Телефон</th><th>Скидка</th><th>Авто</th><th>Заказов</th><th>Сумма</th><th>Действия</th></tr></thead>
+      <tbody id="clientsTable"></tbody>
+    </table></div>
+  </div>
+
+  <!-- SERVICES -->
+  <div class="page" id="page-services">
+    <div class="page-header">
+      <div class="page-title">УСЛУГИ</div>
+      <button class="btn btn-primary" onclick="openServiceModal()">+ Добавить услугу</button>
+    </div>
+    <div id="servicesGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+</main>
+
+<!-- MODALS -->
+
+<!-- Booking Modal -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span>📋 НОВЫЙ ЗАКАЗ</span>
+      <button class="modal-close" onclick="closeModal('bookingModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Клиент</label>
+      <select id="b_client" onchange="updateCarSelect()">
+        <option value="">— Выберите клиента —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Автомобиль</label>
+      <select id="b_car">
+        <option value="">— Сначала выберите клиента —</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Дата записи</label>
+        <input type="datetime-local" id="b_date">
+      </div>
+      <div class="form-group">
+        <label>Способ оплаты</label>
+        <select id="b_pay">
+          <option value="">— Не указан —</option>
+          <option>Наличные</option><option>Карта</option><option>СБП</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Услуги</label>
+      <div class="book-services" id="b_services"></div>
+    </div>
+    <div class="form-group">
+      <label>Комментарий</label>
+      <textarea id="b_comment" placeholder="Пожелания, время, особенности..."></textarea>
+    </div>
+    <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--muted)">Итого:</span>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent)" id="b_total">0 ₽</span>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('bookingModal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveBooking()">✓ Создать заказ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Car Modal -->
+<div class="modal-overlay" id="carModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="carModalTitle">🚘 НОВЫЙ АВТОМОБИЛЬ</span>
+      <button class="modal-close" onclick="closeModal('carModal')">×</button>
+    </div>
+    <input type="hidden" id="c_id">
+    <div class="form-group">
+      <label>Владелец</label>
+      <select id="c_client"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Марка</label><input type="text" id="c_brand" placeholder="Toyota, BMW..."></div>
+      <div class="form-group"><label>Модель</label><input type="text" id="c_model" placeholder="Camry, X5..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Гос. номер</label><input type="text" id="c_plate" placeholder="А123ВС 777"></div>
+      <div class="form-group">
+        <label>Цвет</label>
+        <select id="c_color">
+          <option value="чёрный">⚫ Чёрный</option>
+          <option value="белый">⚪ Белый</option>
+          <option value="серый">🩶 Серый</option>
+          <option value="синий">🔵 Синий</option>
+          <option value="красный">🔴 Красный</option>
+          <option value="серебристый">🪙 Серебристый</option>
+          <option value="зелёный">🟢 Зелёный</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('carModal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveCar()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client Modal -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="clientModalTitle">👤 НОВЫЙ КЛИЕНТ</span>
+      <button class="modal-close" onclick="closeModal('clientModal')">×</button>
+    </div>
+    <input type="hidden" id="cl_id">
+    <div class="form-group"><label>ФИО</label><input type="text" id="cl_fio" placeholder="Иванов Иван Иванович"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Телефон</label><input type="text" id="cl_phone" placeholder="+79001234567"></div>
+      <div class="form-group"><label>Скидка (%)</label><input type="number" id="cl_discount" min="0" max="50" value="0"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('clientModal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveClient()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Service Modal -->
+<div class="modal-overlay" id="serviceModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="svcModalTitle">✨ НОВАЯ УСЛУГА</span>
+      <button class="modal-close" onclick="closeModal('serviceModal')">×</button>
+    </div>
+    <input type="hidden" id="sv_id">
+    <div class="form-group"><label>Название</label><input type="text" id="sv_name" placeholder="Название услуги"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Цена (₽)</label><input type="number" id="sv_price" min="0" step="50"></div>
+      <div class="form-group"><label>Время (мин)</label><input type="number" id="sv_time" min="5" step="5"></div>
+    </div>
+    <div class="form-group">
+      <label>Категория</label>
+      <select id="sv_cat">
+        <option value="кузов">🚗 Кузов</option>
+        <option value="салон">💺 Салон</option>
+        <option value="комплекс">⭐ Комплекс</option>
+        <option value="доп">🔧 Доп. услуги</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('serviceModal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveService()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="orderModalTitle">📋 ЗАКАЗ</span>
+      <button class="modal-close" onclick="closeModal('orderModal')">×</button>
+    </div>
+    <div id="orderDetail"></div>
+    <div class="form-actions" id="orderActions"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ===== SQL.JS INIT =====
+let db;
+let SQL;
+let activeFilter = 'all';
+
+const INITIAL_SQL = `
+CREATE TABLE IF NOT EXISTS Услуги (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  название TEXT NOT NULL,
+  цена REAL NOT NULL,
+  категория TEXT,
+  время_мин INTEGER NOT NULL DEFAULT 30
+);
+CREATE TABLE IF NOT EXISTS Клиенты (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  телефон TEXT NOT NULL,
+  фио TEXT NOT NULL,
+  скидка_процент INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS Автомобили (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  клиент_id INTEGER NOT NULL,
+  марка TEXT NOT NULL,
+  модель TEXT,
+  госномер TEXT NOT NULL,
+  цвет TEXT
+);
+CREATE TABLE IF NOT EXISTS Заказы (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  клиент_id INTEGER,
+  автомобиль_id INTEGER NOT NULL,
+  дата_создания TEXT NOT NULL,
+  планируемая_дата TEXT,
+  статус TEXT DEFAULT 'Новый',
+  итого REAL DEFAULT 0,
+  оплачено REAL DEFAULT 0,
+  способ_оплаты TEXT,
+  комментарий TEXT
+);
+CREATE TABLE IF NOT EXISTS Состав_заказа (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  заказ_id INTEGER NOT NULL,
+  услуга_id INTEGER NOT NULL,
+  количество INTEGER DEFAULT 1,
+  цена_на_момент REAL NOT NULL
+);
+
+INSERT INTO Услуги (название,цена,категория,время_мин) VALUES
+('Мойка кузова стандарт',750,'кузов',20),
+('Мойка + воск',1200,'кузов',35),
+('Чернение резины',500,'кузов',15),
+('Химчистка салона',4200,'салон',90),
+('Комплекс Премиум',6800,'комплекс',150),
+('Мойка двигателя',1500,'доп',45),
+('Антидождь (стёкла)',950,'доп',25);
+
+INSERT INTO Клиенты (телефон,фио,скидка_процент) VALUES
+('+79161234567','Нестеров Александр Викторович',10),
+('+79252345678','Кравцова Ольга Сергеевна',0),
+('+79033456789','Пономарёв Дмитрий Андреевич',5),
+('+79264567890','Соколова Екатерина Михайловна',0);
+
+INSERT INTO Автомобили (клиент_id,марка,модель,госномер,цвет) VALUES
+(1,'Toyota','Camry','А123ВС 777','чёрный'),
+(2,'BMW','X5','О456МР 199','белый'),
+(3,'Kia','Sportage','К789АН 777','серый'),
+(4,'Hyundai','Tucson','Е112КО 777','синий');
+
+INSERT INTO Заказы (клиент_id,автомобиль_id,дата_создания,планируемая_дата,статус,итого,оплачено,способ_оплаты,комментарий) VALUES
+(1,1,'2026-05-03 01:57','2026-05-03 01:57','В работе',1250,0,'Карта','Срочно'),
+(2,2,'2026-05-03 01:57',NULL,'Новый',6800,0,'СБП',NULL),
+(3,3,'2026-05-03 01:57',NULL,'Готов',5150,0,'Наличные',NULL),
+(4,4,'2026-05-03 01:57','2026-05-03 01:57','Запланировано',1200,0,NULL,'На 14:00 завтра');
+
+INSERT INTO Состав_заказа (заказ_id,услуга_id,количество,цена_на_момент) VALUES
+(1,1,1,750),(1,3,1,500),
+(2,5,1,6800),
+(3,4,1,4200),(3,7,1,950),
+(4,2,1,1200);
+`;
+
+async function initDB() {
+  SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}` });
+  db = new SQL.Database();
+  db.run(INITIAL_SQL);
+  renderAll();
+}
+
+function query(sql, params=[]) {
+  try {
+    const stmt = db.prepare(sql);
+    stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
+    return rows;
+  } catch(e) { console.error(e, sql); return []; }
+}
+function run(sql, params=[]) {
+  try { db.run(sql, params); return true; }
+  catch(e) { console.error(e); return false; }
+}
+
+// ===== NAVIGATION =====
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  renderAll();
+}
+
+function renderAll() {
+  renderDashboard();
+  renderOrders();
+  renderCars();
+  renderClients();
+  renderServices();
+  renderHeaderStats();
+}
+
+// ===== COLORS =====
+const COLOR_MAP = {
+  'чёрный':'#1a1a1a','белый':'#f0f0f0','серый':'#888','синий':'#1a4d99',
+  'красный':'#cc2222','серебристый':'#b0b0c0','зелёный':'#1a7a1a'
+};
+function getColor(c) { return COLOR_MAP[c?.toLowerCase()] || '#666'; }
+
+// ===== CAR SVG =====
+function carSVG(brand, color, bg) {
+  const c = getColor(color);
+  const gradId = 'g'+Math.random().toString(36).slice(2,7);
+  return `<svg class="car-svg" viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:${c};stop-opacity:1"/>
+        <stop offset="100%" style="stop-color:${darken(c)};stop-opacity:1"/>
+      </linearGradient>
+      <filter id="shadow"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.4"/></filter>
+    </defs>
+    <!-- Shadow -->
+    <ellipse cx="110" cy="108" rx="75" ry="8" fill="rgba(0,0,0,0.35)"/>
+    <!-- Body -->
+    <rect x="20" y="55" width="180" height="42" rx="10" fill="url(#${gradId})" filter="url(#shadow)"/>
+    <!-- Roof -->
+    <path d="M60 55 Q75 30 90 26 L140 26 Q155 30 165 55 Z" fill="url(#${gradId})"/>
+    <!-- Windows -->
+    <path d="M68 53 Q76 36 90 32 L112 32 L112 53 Z" fill="rgba(150,210,255,0.55)" rx="4"/>
+    <path d="M116 32 L138 32 Q150 36 158 53 L116 53 Z" fill="rgba(150,210,255,0.55)" rx="4"/>
+    <line x1="113" y1="32" x2="113" y2="53" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    <!-- Wheels -->
+    <circle cx="62" cy="97" r="18" fill="#111"/><circle cx="62" cy="97" r="11" fill="#333"/><circle cx="62" cy="97" r="5" fill="#555"/>
+    <circle cx="158" cy="97" r="18" fill="#111"/><circle cx="158" cy="97" r="11" fill="#333"/><circle cx="158" cy="97" r="5" fill="#555"/>
+    <!-- Headlights -->
+    <rect x="20" y="68" width="14" height="8" rx="4" fill="#ffffaa" opacity="0.9"/>
+    <rect x="186" y="68" width="14" height="8" rx="4" fill="#ffaaaa" opacity="0.8"/>
+    <!-- Door line -->
+    <line x1="113" y1="55" x2="113" y2="97" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
+    <!-- Shine -->
+    <path d="M75 40 Q95 34 115 36" stroke="rgba(255,255,255,0.25)" stroke-width="2" fill="none"/>
+  </svg>`;
+}
+function darken(hex) {
+  if(!hex || hex[0]!=='#') return '#333';
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.max(0,r-40);g=Math.max(0,g-40);b=Math.max(0,b-40);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// Brand gradient backgrounds
+const BRAND_BG = {
+  'Toyota':'linear-gradient(135deg,#1a0a00,#3a1500)',
+  'BMW':'linear-gradient(135deg,#00071a,#001540)',
+  'Kia':'linear-gradient(135deg,#0a0010,#200030)',
+  'Hyundai':'linear-gradient(135deg,#00100a,#003020)',
+  'Mercedes':'linear-gradient(135deg,#101010,#252525)',
+  'Audi':'linear-gradient(135deg,#100005,#250010)',
+  'Lada':'linear-gradient(135deg,#001020,#002040)',
+};
+function brandBg(brand) { return BRAND_BG[brand] || 'linear-gradient(135deg,#0a0a15,#15152a)'; }
+
+// ===== STATUS =====
+const STATUS_CLASS = { 'Новый':'badge-new','В работе':'badge-work','Готов':'badge-ready','Запланировано':'badge-plan','Выдан':'badge-done','Отменён':'badge-done' };
+const STATUS_EMOJI = { 'Новый':'🆕','В работе':'⚙️','Готов':'✅','Запланировано':'📅','Выдан':'🏁','Отменён':'❌' };
+function statusBadge(s) {
+  return `<span class="badge ${STATUS_CLASS[s]||'badge-new'}">${STATUS_EMOJI[s]||'📋'} ${s}</span>`;
+}
+
+// ===== CATEGORY =====
+const CAT_STYLE = {
+  'кузов':  { bg:'rgba(0,212,255,0.1)', color:'var(--accent)',   icon:'🚗' },
+  'салон':  { bg:'rgba(255,107,26,0.1)', color:'var(--accent2)', icon:'💺' },
+  'комплекс':{ bg:'rgba(255,214,0,0.1)', color:'var(--yellow)',  icon:'⭐' },
+  'доп':    { bg:'rgba(0,230,118,0.1)', color:'var(--green)',    icon:'🔧' },
+};
+function catStyle(c) { return CAT_STYLE[c] || { bg:'rgba(100,100,100,0.1)', color:'var(--muted)', icon:'🔹' }; }
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const orders = query("SELECT * FROM Заказы");
+  const newOrders = orders.filter(o=>o.статус==='Новый').length;
+  const inWork = orders.filter(o=>o.статус==='В работе').length;
+  const ready = orders.filter(o=>o.статус==='Готов').length;
+  const totalSum = orders.reduce((a,b)=>a+(b.итого||0),0);
+
+  document.getElementById('dashCards').innerHTML = `
+    <div class="dash-card" style="border-color:rgba(0,212,255,0.25)">
+      <div class="dash-label">Новые заказы</div>
+      <div class="dash-value" style="color:var(--accent)">${newOrders}</div>
+      <div class="dash-sub">ожидают обработки</div>
+    </div>
+    <div class="dash-card" style="border-color:rgba(255,214,0,0.25)">
+      <div class="dash-label">В работе</div>
+      <div class="dash-value" style="color:var(--yellow)">${inWork}</div>
+      <div class="dash-sub">сейчас моются</div>
+    </div>
+    <div class="dash-card" style="border-color:rgba(0,230,118,0.25)">
+      <div class="dash-label">Готово</div>
+      <div class="dash-value" style="color:var(--green)">${ready}</div>
+      <div class="dash-sub">ждут выдачи</div>
+    </div>
+    <div class="dash-card" style="border-color:rgba(255,107,26,0.25)">
+      <div class="dash-label">Общая выручка</div>
+      <div class="dash-value" style="color:var(--accent2);font-size:28px">${totalSum.toLocaleString('ru')} ₽</div>
+      <div class="dash-sub">все заказы</div>
+    </div>
+  `;
+
+  // Recent orders
+  const recent = query(`
+    SELECT з.id, з.статус, з.итого, з.дата_создания,
+      к.фио, а.марка, а.модель
+    FROM Заказы з
+    LEFT JOIN Клиенты к ON з.клиент_id=к.id
+    LEFT JOIN Автомобили а ON з.автомобиль_id=а.id
+    ORDER BY з.id DESC LIMIT 6
+  `);
+  document.getElementById('dashOrders').innerHTML = recent.map(o=>`
+    <tr onclick="viewOrder(${o.id})" style="cursor:pointer">
+      <td style="color:var(--accent);font-weight:700">#${o.id}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.фио||'—'}</td>
+      <td>${o.марка||''} ${o.модель||''}</td>
+      <td>${statusBadge(o.статус)}</td>
+      <td style="font-weight:700;color:var(--accent2)">${(o.итого||0).toLocaleString('ru')} ₽</td>
+    </tr>`).join('');
+
+  // Top services
+  const topSvc = query(`
+    SELECT у.название, у.категория, COUNT(*) as cnt, SUM(со.цена_на_момент) as sum
+    FROM Состав_заказа со JOIN Услуги у ON со.услуга_id=у.id
+    GROUP BY со.услуга_id ORDER BY cnt DESC LIMIT 5
+  `);
+  document.getElementById('topServices').innerHTML = topSvc.map(s=>{
+    const cs = catStyle(s.категория);
+    return `<div class="service-card">
+      <div class="service-icon" style="background:${cs.bg}">${cs.icon}</div>
+      <div style="flex:1">
+        <div class="service-name">${s.название}</div>
+        <div style="font-size:11px;color:var(--muted)">${s.cnt} заказов · ${(s.sum||0).toLocaleString('ru')} ₽</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${cs.color}">${s.cnt}×</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== HEADER STATS =====
+function renderHeaderStats() {
+  const inWork = query("SELECT COUNT(*) as c FROM Заказы WHERE статус='В работе'")[0]?.c||0;
+  const ready = query("SELECT COUNT(*) as c FROM Заказы WHERE статус='Готов'")[0]?.c||0;
+  document.getElementById('headerStats').innerHTML = `
+    <div class="stat-chip"><div class="dot" style="background:var(--yellow)"></div>В работе: ${inWork}</div>
+    <div class="stat-chip"><div class="dot" style="background:var(--green)"></div>Готово: ${ready}</div>
+  `;
+}
+
+// ===== ORDERS =====
+function renderOrders() {
+  const statuses = ['all','Новый','В работе','Готов','Запланировано','Выдан','Отменён'];
+  const filterEl = document.getElementById('orderFilters');
+  if(filterEl && filterEl.children.length===0) {
+    filterEl.innerHTML = statuses.map(s=>`
+      <span class="filter-chip ${activeFilter===s?'active':''}" onclick="setFilter('${s}',this)">${s==='all'?'Все':s}</span>
+    `).join('');
+  }
+
+  const search = (document.getElementById('orderSearch')?.value||'').toLowerCase();
+  let orders = query(`
+    SELECT з.id, з.статус, з.итого, з.оплачено, з.дата_создания, з.планируемая_дата,
+      з.способ_оплаты, з.комментарий,
+      к.фио, к.телефон,
+      а.марка, а.модель, а.госномер, а.цвет
+    FROM Заказы з
+    LEFT JOIN Клиенты к ON з.клиент_id=к.id
+    LEFT JOIN Автомобили а ON з.автомобиль_id=а.id
+    ORDER BY з.id DESC
+  `);
+
+  if(activeFilter !== 'all') orders = orders.filter(o=>o.статус===activeFilter);
+  if(search) orders = orders.filter(o=>
+    (o.фио||'').toLowerCase().includes(search) ||
+    (o.марка||'').toLowerCase().includes(search) ||
+    (o.модель||'').toLowerCase().includes(search) ||
+    (o.госномер||'').toLowerCase().includes(search) ||
+    String(o.id).includes(search)
+  );
+
+  const tb = document.getElementById('ordersTable');
+  if(!tb) return;
+  if(!orders.length) { tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Заказов не найдено</div></div></td></tr>`; return; }
+
+  tb.innerHTML = orders.map(o=>{
+    const svcs = query(`SELECT у.название FROM Состав_заказа со JOIN Услуги у ON со.услуга_id=у.id WHERE со.заказ_id=?`,[o.id]);
+    const svcStr = svcs.map(s=>s.название).join(', ') || '—';
+    const paid = o.оплачено >= o.итого && o.итого > 0;
+    return `<tr>
+      <td style="color:var(--accent);font-weight:700">#${o.id}</td>
+      <td style="font-size:11px;color:var(--muted)">${(o.планируемая_дата||o.дата_создания||'').slice(0,16)}</td>
+      <td>
+        <div style="font-weight:600;font-size:13px">${o.фио||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.телефон||''}</div>
+      </td>
+      <td>
+        <div style="font-weight:600">${o.марка||''} ${o.модель||''}</div>
+        <div style="font-size:11px;color:var(--muted)">${o.госномер||''}</div>
+      </td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${svcStr}">${svcStr}</td>
+      <td style="font-weight:700;color:var(--accent2)">${(o.итого||0).toLocaleString('ru')} ₽</td>
+      <td>${statusBadge(o.статус)}</td>
+      <td>
+        ${o.способ_оплаты ? `<span style="font-size:11px">${o.способ_оплаты}</span>` : '<span style="color:var(--muted);font-size:11px">—</span>'}
+        ${paid ? '<span style="color:var(--green);font-size:11px;display:block">✓ оплачено</span>' : ''}
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="viewOrder(${o.id})">👁</button>
+          <button class="btn btn-success btn-sm" onclick="changeStatus(${o.id})">↻</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteOrder(${o.id})">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderOrders();
+}
+
+function viewOrder(id) {
+  const o = query(`SELECT з.*, к.фио, к.телефон, к.скидка_процент, а.марка, а.модель, а.госномер, а.цвет
+    FROM Заказы з LEFT JOIN Клиенты к ON з.клиент_id=к.id LEFT JOIN Автомобили а ON з.автомобиль_id=а.id
+    WHERE з.id=?`,[id])[0];
+  if(!o) return;
+  const svcs = query(`SELECT у.название, у.цена, со.количество, со.цена_на_момент FROM Состав_заказа со JOIN Услуги у ON со.услуга_id=у.id WHERE со.заказ_id=?`,[id]);
+  document.getElementById('orderModalTitle').textContent = `📋 ЗАКАЗ #${id}`;
+  document.getElementById('orderDetail').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Клиент</div>
+        <div style="font-weight:700">${o.фио||'—'}</div>
+        <div style="font-size:12px;color:var(--muted)">${o.телефон||''}</div>
+        ${o.скидка_процент>0?`<div style="font-size:11px;color:var(--green)">Скидка: ${o.скидка_процент}%</div>`:''}
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Автомобиль</div>
+        <div style="font-weight:700">${o.марка||''} ${o.модель||''}</div>
+        <div style="font-size:12px;color:var(--muted)">${o.госномер||''} · ${o.цвет||''}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Услуги</div>
+    <div style="background:var(--surface2);border-radius:10px;overflow:hidden;margin-bottom:16px">
+      ${svcs.map(s=>`
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)">
+          <span>${s.название} ×${s.количество}</span>
+          <span style="color:var(--accent);font-weight:700">${(s.цена_на_момент*s.количество).toLocaleString('ru')} ₽</span>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:12px 14px;font-weight:700">
+        <span>ИТОГО</span>
+        <span style="color:var(--accent2);font-family:'Bebas Neue',sans-serif;font-size:22px">${(o.итого||0).toLocaleString('ru')} ₽</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">СТАТУС</div>${statusBadge(o.статус)}</div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">ОПЛАТА</div><span style="font-size:13px">${o.способ_оплаты||'—'}</span></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">ДАТА</div><span style="font-size:12px">${(o.планируемая_дата||o.дата_создания||'').slice(0,16)}</span></div>
+    </div>
+    ${o.комментарий?`<div style="background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)">💬 ${o.комментарий}</div>`:''}
+  `;
+  const statuses = ['Новый','Запланировано','В работе','Готов','Выдан','Отменён'].filter(s=>s!==o.статус);
+  document.getElementById('orderActions').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('orderModal')">Закрыть</button>
+    <select id="statusSelect" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-family:'Montserrat',sans-serif">
+      ${statuses.map(s=>`<option value="${s}">${s}</option>`).join('')}
+    </select>
+    <button class="btn btn-primary" onclick="applyStatus(${id})">Сменить статус</button>
+    ${o.оплачено<o.итого?`<button class="btn btn-success" onclick="markPaid(${id},${o.итого})">✓ Оплачено</button>`:''}
+  `;
+  openModal('orderModal');
+}
+
+function applyStatus(id) {
+  const s = document.getElementById('statusSelect').value;
+  run("UPDATE Заказы SET статус=? WHERE id=?",[s,id]);
+  toast('Статус изменён: '+s,'success');
+  closeModal('orderModal');
+  renderAll();
+}
+
+function markPaid(id, sum) {
+  run("UPDATE Заказы SET оплачено=? WHERE id=?",[sum,id]);
+  toast('Оплата принята','success');
+  closeModal('orderModal');
+  renderAll();
+}
+
+function changeStatus(id) {
+  viewOrder(id);
+}
+
+function deleteOrder(id) {
+  if(!confirm(`Удалить заказ #${id}?`)) return;
+  run("DELETE FROM Состав_заказа WHERE заказ_id=?",[id]);
+  run("DELETE FROM Заказы WHERE id=?",[id]);
+  toast('Заказ удалён','success');
+  renderAll();
+}
+
+// ===== CARS =====
+function renderCars() {
+  const search = (document.getElementById('carSearch')?.value||'').toLowerCase();
+  let cars = query(`SELECT а.*, к.фио, к.телефон FROM Автомобили а LEFT JOIN Клиенты к ON а.клиент_id=к.id`);
+  if(search) cars = cars.filter(c=>
+    (c.марка||'').toLowerCase().includes(search) ||
+    (c.модель||'').toLowerCase().includes(search) ||
+    (c.госномер||'').toLowerCase().includes(search) ||
+    (c.фио||'').toLowerCase().includes(search)
+  );
+  const el = document.getElementById('carsGrid');
+  if(!el) return;
+  if(!cars.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">Автомобили не найдены</div></div>`; return; }
+  el.innerHTML = cars.map(car=>`
+    <div class="car-card">
+      <div class="car-card-img" style="background:${brandBg(car.марка)}">
+        ${carSVG(car.марка, car.цвет, car.марка)}
+      </div>
+      <div class="car-card-body">
+        <div class="car-brand">${car.марка||'—'}</div>
+        <div class="car-model">${car.модель||''}</div>
+        <div><span class="car-plate">${car.госномер||'—'}</span></div>
+        <div class="car-owner" style="margin-top:8px">
+          <span class="car-color-dot" style="background:${getColor(car.цвет)}"></span>
+          ${car.цвет||'—'}
+        </div>
+        <div class="car-owner">👤 ${car.фио||'—'}</div>
+        <div class="car-actions">
+          <button class="btn btn-primary btn-sm" onclick="openBookingForCar(${car.id},${car.клиент_id})">📋 Записать</button>
+          <button class="btn btn-ghost btn-sm" onclick="editCar(${car.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCar(${car.id})">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openBookingForCar(carId, clientId) {
+  openBookingModal();
+  setTimeout(()=>{
+    document.getElementById('b_client').value = clientId;
+    updateCarSelect();
+    setTimeout(()=>{ document.getElementById('b_car').value = carId; }, 100);
+  }, 100);
+}
+
+function openCarModal(editId=null) {
+  document.getElementById('c_id').value = editId||'';
+  document.getElementById('carModalTitle').textContent = editId ? '✏️ РЕДАКТИРОВАТЬ АВТО' : '🚘 НОВЫЙ АВТОМОБИЛЬ';
+  const clients = query("SELECT * FROM Клиенты ORDER BY фио");
+  document.getElementById('c_client').innerHTML = clients.map(c=>`<option value="${c.id}">${c.фио}</option>`).join('');
+  if(editId) {
+    const car = query("SELECT * FROM Автомобили WHERE id=?",[editId])[0];
+    if(car) {
+      document.getElementById('c_client').value = car.клиент_id;
+      document.getElementById('c_brand').value = car.марка||'';
+      document.getElementById('c_model').value = car.модель||'';
+      document.getElementById('c_plate').value = car.госномер||'';
+      document.getElementById('c_color').value = car.цвет||'чёрный';
+    }
+  } else {
+    ['c_brand','c_model','c_plate'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('c_color').value='чёрный';
+  }
+  openModal('carModal');
+}
+
+function editCar(id) { openCarModal(id); }
+
+function saveCar() {
+  const id = document.getElementById('c_id').value;
+  const client = document.getElementById('c_client').value;
+  const brand = document.getElementById('c_brand').value.trim();
+  const model = document.getElementById('c_model').value.trim();
+  const plate = document.getElementById('c_plate').value.trim();
+  const color = document.getElementById('c_color').value;
+  if(!brand||!plate) { toast('Заполните марку и номер','error'); return; }
+  if(id) {
+    run("UPDATE Автомобили SET клиент_id=?,марка=?,модель=?,госномер=?,цвет=? WHERE id=?",[client,brand,model,plate,color,id]);
+    toast('Автомобиль обновлён','success');
+  } else {
+    run("INSERT INTO Автомобили (клиент_id,марка,модель,госномер,цвет) VALUES (?,?,?,?,?)",[client,brand,model,plate,color]);
+    toast('Автомобиль добавлен','success');
+  }
+  closeModal('carModal'); renderAll();
+}
+
+function deleteCar(id) {
+  if(!confirm('Удалить этот автомобиль?')) return;
+  run("DELETE FROM Автомобили WHERE id=?",[id]);
+  toast('Автомобиль удалён','success');
+  renderAll();
+}
+
+// ===== CLIENTS =====
+function renderClients() {
+  const clients = query("SELECT * FROM Клиенты ORDER BY фио");
+  const tb = document.getElementById('clientsTable');
+  if(!tb) return;
+  tb.innerHTML = clients.map(c=>{
+    const cars = query("SELECT марка,модель FROM Автомобили WHERE клиент_id=?",[c.id]);
+    const orders = query("SELECT COUNT(*) as cnt, SUM(итого) as sum FROM Заказы WHERE клиент_id=?",[c.id])[0];
+    return `<tr>
+      <td>
+        <div style="font-weight:700">${c.фио}</div>
+      </td>
+      <td style="color:var(--accent)">${c.телефон}</td>
+      <td>${c.скидка_процент>0?`<span style="color:var(--green);font-weight:700">${c.скидка_процент}%</span>`:'<span style="color:var(--muted)">нет</span>'}</td>
+      <td>${cars.map(a=>`${a.марка} ${a.модель}`).join(', ')||'—'}</td>
+      <td style="font-weight:700">${orders.cnt||0}</td>
+      <td style="color:var(--accent2);font-weight:700">${(orders.sum||0).toLocaleString('ru')} ₽</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="editClient(${c.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openClientModal(editId=null) {
+  document.getElementById('cl_id').value = editId||'';
+  document.getElementById('clientModalTitle').textContent = editId ? '✏️ РЕДАКТИРОВАТЬ КЛИЕНТА' : '👤 НОВЫЙ КЛИЕНТ';
+  if(editId) {
+    const c = query("SELECT * FROM Клиенты WHERE id=?",[editId])[0];
+    if(c) {
+      document.getElementById('cl_fio').value = c.фио||'';
+      document.getElementById('cl_phone').value = c.телефон||'';
+      document.getElementById('cl_discount').value = c.скидка_процент||0;
+    }
+  } else {
+    ['cl_fio','cl_phone'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('cl_discount').value=0;
+  }
+  openModal('clientModal');
+}
+
+function editClient(id) { openClientModal(id); }
+
+function saveClient() {
+  const id = document.getElementById('cl_id').value;
+  const fio = document.getElementById('cl_fio').value.trim();
+  const phone = document.getElementById('cl_phone').value.trim();
+  const disc = parseInt(document.getElementById('cl_discount').value)||0;
+  if(!fio||!phone) { toast('Заполните ФИО и телефон','error'); return; }
+  if(id) {
+    run("UPDATE Клиенты SET фио=?,телефон=?,скидка_процент=? WHERE id=?",[fio,phone,disc,id]);
+    toast('Клиент обновлён','success');
+  } else {
+    run("INSERT INTO Клиенты (фио,телефон,скидка_процент) VALUES (?,?,?)",[fio,phone,disc]);
+    toast('Клиент добавлен','success');
+  }
+  closeModal('clientModal'); renderAll();
+}
+
+function deleteClient(id) {
+  if(!confirm('Удалить клиента?')) return;
+  run("DELETE FROM Клиенты WHERE id=?",[id]);
+  toast('Клиент удалён','success');
+  renderAll();
+}
+
+// ===== SERVICES =====
+function renderServices() {
+  const svcs = query("SELECT * FROM Услуги ORDER BY категория,цена");
+  const el = document.getElementById('servicesGrid');
+  if(!el) return;
+  const cats = ['кузов','салон','комплекс','доп'];
+  let html = '';
+  cats.forEach(cat=>{
+    const catSvcs = svcs.filter(s=>s.категория===cat);
+    if(!catSvcs.length) return;
+    const cs = catStyle(cat);
+    html += `<div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--muted);margin-top:8px;margin-bottom:8px">${cs.icon} ${cat.toUpperCase()}</div>`;
+    catSvcs.forEach(s=>{
+      const usages = query("SELECT COUNT(*) as c FROM Состав_заказа WHERE услуга_id=?",[s.id])[0]?.c||0;
+      html += `<div class="service-card">
+        <div class="service-icon" style="background:${cs.bg}; font-size:26px">${cs.icon}</div>
+        <div style="flex:1">
+          <div class="service-name">${s.название}</div>
+          <div class="service-meta">⏱ ${s.время_мин} мин · Использовано: ${usages}×</div>
+        </div>
+        <div style="text-align:right">
+          <div class="service-price">${(s.цена||0).toLocaleString('ru')} ₽</div>
+          <span class="service-cat" style="background:${cs.bg};color:${cs.color}">${s.категория}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-direction:column">
+          <button class="btn btn-ghost btn-sm" onclick="editService(${s.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteService(${s.id})">🗑</button>
+        </div>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+function openServiceModal(editId=null) {
+  document.getElementById('sv_id').value = editId||'';
+  document.getElementById('svcModalTitle').textContent = editId ? '✏️ РЕДАКТИРОВАТЬ УСЛУГУ' : '✨ НОВАЯ УСЛУГА';
+  if(editId) {
+    const s = query("SELECT * FROM Услуги WHERE id=?",[editId])[0];
+    if(s) {
+      document.getElementById('sv_name').value=s.название||'';
+      document.getElementById('sv_price').value=s.цена||0;
+      document.getElementById('sv_time').value=s.время_мин||30;
+      document.getElementById('sv_cat').value=s.категория||'кузов';
+    }
+  } else {
+    ['sv_name'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('sv_price').value=0;
+    document.getElementById('sv_time').value=30;
+    document.getElementById('sv_cat').value='кузов';
+  }
+  openModal('serviceModal');
+}
+
+function editService(id) { openServiceModal(id); }
+
+function saveService() {
+  const id = document.getElementById('sv_id').value;
+  const name = document.getElementById('sv_name').value.trim();
+  const price = parseFloat(document.getElementById('sv_price').value)||0;
+  const time = parseInt(document.getElementById('sv_time').value)||30;
+  const cat = document.getElementById('sv_cat').value;
+  if(!name) { toast('Введите название','error'); return; }
+  if(id) {
+    run("UPDATE Услуги SET название=?,цена=?,время_мин=?,категория=? WHERE id=?",[name,price,time,cat,id]);
+    toast('Услуга обновлена','success');
+  } else {
+    run("INSERT INTO Услуги (название,цена,категория,время_мин) VALUES (?,?,?,?)",[name,price,cat,time]);
+    toast('Услуга добавлена','success');
+  }
+  closeModal('serviceModal'); renderAll();
+}
+
+function deleteService(id) {
+  if(!confirm('Удалить услугу?')) return;
+  run("DELETE FROM Услуги WHERE id=?",[id]);
+  toast('Услуга удалена','success');
+  renderAll();
+}
+
+// ===== BOOKING =====
+function openBookingModal() {
+  const clients = query("SELECT * FROM Клиенты ORDER BY фио");
+  const clientSel = document.getElementById('b_client');
+  clientSel.innerHTML = `<option value="">— Выберите клиента —</option>`
+    + clients.map(c=>`<option value="${c.id}">${c.фио}</option>`).join('');
+  document.getElementById('b_car').innerHTML = `<option value="">— Сначала выберите клиента —</option>`;
+  document.getElementById('b_comment').value='';
+  document.getElementById('b_pay').value='';
+  const now = new Date(); now.setMinutes(Math.ceil(now.getMinutes()/15)*15,0,0);
+  document.getElementById('b_date').value = now.toISOString().slice(0,16);
+  renderBookingServices();
+  openModal('bookingModal');
+}
+
+function renderBookingServices() {
+  const svcs = query("SELECT * FROM Услуги ORDER BY категория,цена");
+  document.getElementById('b_services').innerHTML = svcs.map(s=>`
+    <label class="book-service-item" id="bsi_${s.id}">
+      <input type="checkbox" value="${s.id}" data-price="${s.цена}" onchange="updateBookingTotal();toggleServiceItem(${s.id})">
+      <div>
+        <div class="book-svc-name">${s.название}</div>
+        <div class="book-svc-price">${(s.цена||0).toLocaleString('ru')} ₽</div>
+      </div>
+    </label>`).join('');
+  updateBookingTotal();
+}
+
+function toggleServiceItem(id) {
+  const el = document.getElementById('bsi_'+id);
+  const cb = el.querySelector('input');
+  el.classList.toggle('selected', cb.checked);
+}
+
+function updateBookingTotal() {
+  let total = 0;
+  document.querySelectorAll('#b_services input[type=checkbox]:checked').forEach(cb=>{
+    total += parseFloat(cb.dataset.price)||0;
+  });
+  document.getElementById('b_total').textContent = total.toLocaleString('ru')+' ₽';
+}
+
+function updateCarSelect() {
+  const clientId = document.getElementById('b_client').value;
+  if(!clientId) { document.getElementById('b_car').innerHTML=`<option value="">— Сначала выберите клиента —</option>`; return; }
+  const cars = query("SELECT * FROM Автомобили WHERE клиент_id=?",[clientId]);
+  document.getElementById('b_car').innerHTML = cars.length
+    ? cars.map(c=>`<option value="${c.id}">${c.марка} ${c.модель||''} (${c.госномер})</option>`).join('')
+    : `<option value="">Нет автомобилей</option>`;
+}
+
+function saveBooking() {
+  const clientId = document.getElementById('b_client').value;
+  const carId = document.getElementById('b_car').value;
+  if(!carId) { toast('Выберите автомобиль','error'); return; }
+  const selectedSvcs = [];
+  document.querySelectorAll('#b_services input[type=checkbox]:checked').forEach(cb=>{
+    selectedSvcs.push({ id: parseInt(cb.value), price: parseFloat(cb.dataset.price)||0 });
+  });
+  if(!selectedSvcs.length) { toast('Выберите хотя бы одну услугу','error'); return; }
+  const date = document.getElementById('b_date').value;
+  const pay = document.getElementById('b_pay').value;
+  const comment = document.getElementById('b_comment').value;
+  const total = selectedSvcs.reduce((a,b)=>a+b.price,0);
+  const now = new Date().toISOString().slice(0,16);
+  run(`INSERT INTO Заказы (клиент_id,автомобиль_id,дата_создания,планируемая_дата,статус,итого,способ_оплаты,комментарий)
+       VALUES (?,?,?,?,?,?,?,?)`,
+    [clientId||null, carId, now, date||null, 'Новый', total, pay||null, comment||null]);
+  const orderId = query("SELECT last_insert_rowid() as id")[0].id;
+  selectedSvcs.forEach(s=>{
+    run("INSERT INTO Состав_заказа (заказ_id,услуга_id,количество,цена_на_момент) VALUES (?,?,?,?)",[orderId,s.id,1,s.price]);
+  });
+  toast(`Заказ #${orderId} создан — ${total.toLocaleString('ru')} ₽`,'success');
+  closeModal('bookingModal');
+  renderAll();
+}
+
+// ===== MODAL HELPERS =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// ===== TOAST =====
+function toast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `${type==='success'?'✅':'❌'} ${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+// ===== INIT =====
+initDB();
+</script>
+</body>
+</html>
